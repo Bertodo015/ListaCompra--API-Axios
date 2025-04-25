@@ -17,6 +17,8 @@ export default function App() {
   const [produtos, setProdutos] = useState<Produto[]>([]);
   const [nomeProduto, setNomeProduto] = useState('');
   const [precoProduto, setPrecoProduto] = useState('');
+  const [editandoProduto, setEditandoProduto] = useState<Produto | null>(null);
+
 
   useEffect(() => {
     getProdutos();
@@ -26,8 +28,8 @@ export default function App() {
     try {
       const resposta = await axios.get(`${API_URL}/produtos`);
       const listaDeProdutos: Produto[] = [];
-      
-      for(let i = 0; i < resposta.data.length; i++)
+
+      for (let i = 0; i < resposta.data.length; i++)
         listaDeProdutos.push({
           _id: resposta.data[i]._id,
           nome: resposta.data[i].nome,
@@ -51,29 +53,65 @@ export default function App() {
       }
 
       const resposta = await axios.post(`${API_URL}/produto`, novoProduto);
-      await getProdutos();
+      await getProdutos();  //Atualiza a lista
       setNomeProduto('');
       setPrecoProduto('');
 
     } catch (error) {
       console.log('Erro no Post do /produto', error);
-      
+
     }
   }
+
+  // Função que remove produto
+  const deletarProduto = async (produto: Produto) => {
+    try {
+      await axios.delete(`${API_URL}/produto`, {
+        data: { nome: produto.nome }
+      });
+
+      await getProdutos();  //Atualiza a lista
+      console.log('Produto removido!');
+    } catch (erro) {
+      console.log('Erro ao remover', erro);
+    }
+  }
+
+  // Função que edita
+  const editarProduto = async (produto: Produto) => {
+    try {
+      await axios.put(`${API_URL}/produto`, {
+        _id: produto._id,
+        nome: nomeProduto || produto.nome,
+        preco: precoProduto ? parseFloat(precoProduto) : produto.preco,
+      });
+
+      await getProdutos(); // Atualiza a lista
+      setNomeProduto('');
+      setPrecoProduto('');
+      console.log('Produto editado!');
+    } catch (erro) {
+      console.log('Erro ao editar', erro);
+    }
+  };
+
+
+
+
   return (
     <View style={styles.container}>
       <View style={styles.linha}>
-        <TextInput 
-          style={styles.input} 
-          value={nomeProduto} 
-          placeholder="Digite o nome" 
+        <TextInput
+          style={styles.input}
+          value={nomeProduto}
+          placeholder="Digite o nome"
           onChangeText={setNomeProduto}>
         </TextInput>
-        <TextInput 
-          style={styles.input} 
+        <TextInput
+          style={styles.input}
           keyboardType="numeric"
-          value={precoProduto} 
-          placeholder="Digite o preço" 
+          value={precoProduto}
+          placeholder="Digite o preço"
           onChangeText={setPrecoProduto}>
         </TextInput>
 
@@ -83,27 +121,32 @@ export default function App() {
       </View>
 
 
-      {produtos.length > 0 && 
-      <FlashList
-        data={produtos}
-        estimatedItemSize={20}
-        renderItem={({ item }) => 
-          <View style={styles.item} >
-            <Text>{item.nome} - R${item.preco}</Text>
-            <View style={styles.linha}>
-              <TouchableOpacity style={styles.btnEditar} > 
-                <MaterialIcons name="edit-square" size={22} /> 
-              </TouchableOpacity>
+      {produtos.length > 0 &&
+        <FlashList
+          data={produtos}
+          estimatedItemSize={20}
+          renderItem={({ item }) =>
+            <View style={styles.item} >
+              <Text>{item.nome} - R${item.preco}</Text>
+              <View style={styles.linha}>
+                <TouchableOpacity
+                  style={styles.btnEditar}
+                  onPress={() => editarProduto(item)}>
+                  <MaterialIcons name="edit-square" size={22} />
+                </TouchableOpacity>
 
-              <TouchableOpacity style={styles.btnRemover}> 
-                <MaterialIcons name="remove-circle-outline" size={22} /> 
-              </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.btnRemover}
+                  onPress={() => deletarProduto(item)}>
+                  <MaterialIcons name="remove-circle-outline" size={22} />
+                </TouchableOpacity>
+              </View>
             </View>
-          </View>
-        }
-      />}
-      {produtos.length === 0 && <Text>Sem produtos cadastrados!</Text> }
-    </View>
+          }
+        />}
+      {produtos.length === 0 && <Text>Sem produtos cadastrados!</Text>}
+    </View >
   );
 };
 
